@@ -9,7 +9,7 @@ else
     B_CMAKE=cmake
 fi
 # default build configuration
-B_BUILD_TYPE=${B_BUILD_TYPE:-Debug}
+B_BUILD_TYPE=${B_BUILD_TYPE:-Release}
 if [ "$(uname)" = "Darwin" ]; then
     # OSX needs a lot of extra help, poor thing
     # run the osx_environment.sh script to fix paths

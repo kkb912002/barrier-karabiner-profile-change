@@ -24,6 +24,28 @@
 #include "server/ClientProxy.h"
 #include "base/TMethodEventJob.h"
 
+#include <cstdio>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <array>
+
+std::string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
+std::string lastInput = "com.apple.keylayout.ABC";
+
 namespace barrier {
 
 //
@@ -110,7 +132,7 @@ void
 Screen::enter(KeyModifierMask toggleMask)
 {
     assert(m_entered == false);
-    LOG((CLOG_INFO "entering screen"));
+    LOG((CLOG_INFO "entering screen with changing karabiner profile to mac"));
 
     // now on screen
     m_entered = true;
@@ -122,13 +144,17 @@ Screen::enter(KeyModifierMask toggleMask)
     else {
         enterSecondary(toggleMask);
     }
+
+    system("/Library/Application\\ Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli --select-profile mac");
+    std::string restoreCmd = "/usr/local/bin/macism " + lastInput;
+    system(restoreCmd.c_str());
 }
 
 bool
 Screen::leave()
 {
     assert(m_entered == true);
-    LOG((CLOG_INFO "leaving screen"));
+    LOG((CLOG_INFO "leaving screen with changing karabiner profile to win"));
 
     if (!m_screen->leave()) {
         return false;
@@ -145,6 +171,10 @@ Screen::leave()
 
     // now not on screen
     m_entered = false;
+
+    system("/Library/Application\\ Support/org.pqrs/Karabiner-Elements/bin/karabiner_cli --select-profile win");
+    lastInput = exec("/usr/local/bin/macism");
+    system("/usr/local/bin/macism com.apple.keylayout.ABC");
 
     return true;
 }
